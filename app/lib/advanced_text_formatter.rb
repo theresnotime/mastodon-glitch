@@ -19,6 +19,8 @@ class AdvancedTextFormatter < TextFormatter
     end
   end
 
+  attr_reader :content_type
+
   # @param [String] text
   # @param [Hash] options
   # @option options [Boolean] :multiline
@@ -27,7 +29,7 @@ class AdvancedTextFormatter < TextFormatter
   # @option options [Array<Account>] :preloaded_accounts
   # @option options [String] :content_type
   def initialize(text, options = {})
-    content_type = options.delete(:content_type)
+    @content_type = options.delete(:content_type)
     super(text, options)
 
     @text = format_markdown(text) if content_type == 'text/markdown'
@@ -50,7 +52,7 @@ class AdvancedTextFormatter < TextFormatter
         entity.replace(link_to_mention({ screen_name: entity['value'] }))
       end
     end
-    result.to_html
+    result.to_html.html_safe # rubocop:disable Rails/OutputSafety
   end
 
   ##
@@ -84,7 +86,7 @@ class AdvancedTextFormatter < TextFormatter
             # Text node for content which precedes entity.
             replacement << Nokogiri::XML::Text.new(
               content[processed_index, advance],
-              @tree.document
+              document
             )
           end
           elt = Nokogiri::XML::Element.new('mastodon-entity', document)
