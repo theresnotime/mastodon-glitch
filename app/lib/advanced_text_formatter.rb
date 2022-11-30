@@ -35,40 +35,28 @@ class AdvancedTextFormatter < TextFormatter
     @text = format_markdown(text) if content_type == 'text/markdown'
   end
 
-  # Differs from TextFormatter by operating on the parsed HTML tree ;)
-  #
-  # See +#tree+
+  # Differs from TextFormatter by not messing with newline after parsing
   def to_s
     return ''.html_safe if text.blank?
 
-    result = tree.dup
-    result.css('mastodon-entity').each do |entity|
-      case entity['kind']
-      when 'hashtag'
-        entity.replace(link_to_hashtag({ hashtag: entity['value'] }))
-      when 'link'
-        entity.replace(link_to_url({ url: entity['value'] }))
-      when 'mention'
-        entity.replace(link_to_mention({ screen_name: entity['value'] }))
+    html = rewrite do |entity|
+      if entity[:url]
+        link_to_url(entity)
+      elsif entity[:hashtag]
+        link_to_hashtag(entity)
+      elsif entity[:screen_name]
+        link_to_mention(entity)
       end
     end
-    result.to_html.html_safe # rubocop:disable Rails/OutputSafety
+
+    html.html_safe # rubocop:disable Rails/OutputSafety
   end
 
-  ##
-  # Process the status into a Nokogiri document fragment, with entities
-  # replaced with +<mastodon-entity>+s.
-  #
-  # Since +<mastodon-entity>+ is not allowed by the sanitizer, any such
-  # elements in the output *must* have been produced by this algorithm.
-  #
-  # These elements will need to be replaced prior to serialization (see
-  # +#to_s+).
-  def tree
+  # Differs from TextFormatter by operating on the parsed HTML tree
+  def rewrite
     if @tree.nil?
       src = text.gsub(Sanitize::REGEX_UNSUITABLE_CHARS, '')
       @tree = Nokogiri::HTML5.fragment(src)
-      Sanitize.node!(@tree, Sanitize::Config::MASTODON_OUTGOING)
       document = @tree.document
 
       @tree.xpath('.//text()[not(ancestor::a | ancestor::code)]').each do |text_node|
@@ -89,18 +77,7 @@ class AdvancedTextFormatter < TextFormatter
               document
             )
           end
-          elt = Nokogiri::XML::Element.new('mastodon-entity', document)
-          if entity[:url]
-            elt['kind'] = 'link'
-            elt['value'] = entity[:url]
-          elsif entity[:hashtag]
-            elt['kind'] = 'hashtag'
-            elt['value'] = entity[:hashtag]
-          elsif entity[:screen_name]
-            elt['kind'] = 'mention'
-            elt['value'] = entity[:screen_name]
-          end
-          replacement << elt
+          replacement << Nokogiri::HTML5.fragment(yield(entity))
           processed_index = entity[:indices].last
         end
         if processed_index < content.size
@@ -113,7 +90,8 @@ class AdvancedTextFormatter < TextFormatter
         text_node.replace(replacement)
       end
     end
-    @tree
+
+    Sanitize.node!(@tree, Sanitize::Config::MASTODON_OUTGOING).to_html
   end
 
   private
