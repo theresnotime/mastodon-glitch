@@ -72,11 +72,11 @@ RSpec.describe ActivityPub::FetchFeaturedCollectionService, type: :service do
 
   shared_examples 'sets pinned posts' do
     before do
-      stub_request(:get, 'https://example.com/account/pinned/known').to_return(status: 200, body: Oj.dump(status_json_pinned_known))
-      stub_request(:get, 'https://example.com/account/pinned/unknown-inlined').to_return(status: 200, body: Oj.dump(status_json_pinned_unknown_inlined))
+      stub_request(:get, 'https://example.com/account/pinned/known').to_return(status: 200, body: Oj.dump(status_json_pinned_known), headers: { 'Content-Type': 'application/activity+json' })
+      stub_request(:get, 'https://example.com/account/pinned/unknown-inlined').to_return(status: 200, body: Oj.dump(status_json_pinned_unknown_inlined), headers: { 'Content-Type': 'application/activity+json' })
       stub_request(:get, 'https://example.com/account/pinned/unknown-unreachable').to_return(status: 404)
-      stub_request(:get, 'https://example.com/account/pinned/unknown-reachable').to_return(status: 200, body: Oj.dump(status_json_pinned_unknown_unreachable))
-      stub_request(:get, 'https://example.com/account/collections/featured').to_return(status: 200, body: Oj.dump(featured_with_null))
+      stub_request(:get, 'https://example.com/account/pinned/unknown-reachable').to_return(status: 200, body: Oj.dump(status_json_pinned_unknown_unreachable), headers: { 'Content-Type': 'application/activity+json' })
+      stub_request(:get, 'https://example.com/account/collections/featured').to_return(status: 200, body: Oj.dump(featured_with_null), headers: { 'Content-Type': 'application/activity+json' })
 
       subject.call(actor, note: true, hashtag: false)
     end
@@ -93,7 +93,7 @@ RSpec.describe ActivityPub::FetchFeaturedCollectionService, type: :service do
   describe '#call' do
     context 'when the endpoint is a Collection' do
       before do
-        stub_request(:get, actor.featured_collection_url).to_return(status: 200, body: Oj.dump(payload))
+        stub_request(:get, actor.featured_collection_url).to_return(status: 200, body: Oj.dump(payload), headers: { 'Content-Type': 'application/activity+json' })
       end
 
       it_behaves_like 'sets pinned posts'
@@ -110,7 +110,7 @@ RSpec.describe ActivityPub::FetchFeaturedCollectionService, type: :service do
       end
 
       before do
-        stub_request(:get, actor.featured_collection_url).to_return(status: 200, body: Oj.dump(payload))
+        stub_request(:get, actor.featured_collection_url).to_return(status: 200, body: Oj.dump(payload), headers: { 'Content-Type': 'application/activity+json' })
       end
 
       it_behaves_like 'sets pinned posts'
@@ -131,7 +131,7 @@ RSpec.describe ActivityPub::FetchFeaturedCollectionService, type: :service do
       end
 
       before do
-        stub_request(:get, actor.featured_collection_url).to_return(status: 200, body: Oj.dump(payload))
+        stub_request(:get, actor.featured_collection_url).to_return(status: 200, body: Oj.dump(payload), headers: { 'Content-Type': 'application/activity+json' })
       end
 
       it_behaves_like 'sets pinned posts'
