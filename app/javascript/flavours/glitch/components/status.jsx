@@ -20,8 +20,9 @@ import Card from '../features/status/components/card';
 // to use the progress bar to show download progress
 import Bundle from '../features/ui/components/bundle';
 import { MediaGallery, Video, Audio } from '../features/ui/util/async-components';
+import { IdentityConsumer } from '../features/ui/util/identity_consumer';
 import { SensitiveMediaContext } from '../features/ui/util/sensitive_media_context';
-import { displayMedia } from '../initial_state';
+import { displayMedia, visibleReactions } from '../initial_state';
 
 import AttachmentList from './attachment_list';
 import { CollapseButton } from './collapse_button';
@@ -31,6 +32,7 @@ import StatusContent from './status_content';
 import StatusHeader from './status_header';
 import StatusIcons from './status_icons';
 import StatusPrepend from './status_prepend';
+import StatusReactions from './status_reactions';
 
 const domParser = new DOMParser();
 
@@ -91,6 +93,8 @@ class Status extends ImmutablePureComponent {
     onDelete: PropTypes.func,
     onDirect: PropTypes.func,
     onMention: PropTypes.func,
+    onReactionAdd: PropTypes.func,
+    onReactionRemove: PropTypes.func,
     onPin: PropTypes.func,
     onOpenMedia: PropTypes.func,
     onOpenVideo: PropTypes.func,
@@ -758,6 +762,7 @@ class Status extends ImmutablePureComponent {
     if (this.props.prepend && account) {
       const notifKind = {
         favourite: 'favourited',
+        reaction: 'reacted',
         reblog: 'boosted',
         reblogged_by: 'boosted',
         status: 'posted',
@@ -840,6 +845,19 @@ class Status extends ImmutablePureComponent {
               rewriteMentions={settings.get('rewrite_mentions')}
               {...statusContentProps}
             />
+
+            <IdentityConsumer>
+              {identity => (
+                <StatusReactions
+                  statusId={status.get('id')}
+                  reactions={status.get('reactions')}
+                  numVisible={visibleReactions}
+                  addReaction={this.props.onReactionAdd}
+                  removeReaction={this.props.onReactionRemove}
+                  canReact={identity.signedIn}
+                />
+              )}
+            </IdentityConsumer>
 
             {(!isCollapsed || !(muted || !settings.getIn(['collapsed', 'show_action_bar']))) && (
               <StatusActionBar
